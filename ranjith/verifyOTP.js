@@ -49,14 +49,14 @@ module.exports.handler = async (event) => {
       })
     }
 
-    if (item.otp != otp) {
-      return (response = {
-        statusCode: 403,
-        body: JSON.stringify({
-          message: 'otp is wrong',
-        }),
-      })
-    }
+    // if (item.otp != otp) {
+    //   return (response = {
+    //     statusCode: 403,
+    //     body: JSON.stringify({
+    //       message: 'otp is wrong',
+    //     }),
+    //   })
+    // }
 
     let updateParams = {
       TableName: process.env.TableName,
@@ -64,8 +64,10 @@ module.exports.handler = async (event) => {
         email: email,
       },
       UpdateExpression: 'set verified = :v',
+      ConditionExpression: 'otp = :o',
       ExpressionAttributeValues: {
         ':v': true,
+        ':o':otp
       },
       ReturnValues: 'UPDATED_NEW',
     }
