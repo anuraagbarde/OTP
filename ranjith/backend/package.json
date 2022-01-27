@@ -1,0 +1,13 @@
+{
+  "name": "OTP-system",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "devDependencies": {
+    "@sendgrid/mail": "^7.6.0"
+  },
+  "dependencies": {
+    "aws-sdk": "^2.1058.0",
+    "crypto": "^1.0.1"
+  }
+}
