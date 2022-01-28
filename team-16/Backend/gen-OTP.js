@@ -9,26 +9,34 @@ const otpGenerator = require("otp-generator");
 
 const docClient = new AWS.DynamoDB.DocumentClient({ region: "us-east-2" });
 
-exports.handler = function (event, context, callback) {
-  const OTP = otpGenerator.generate(6, {
-    upperCaseAlphabets: false,
-    lowerCaseAlphabets: false,
-    specialChars: false,
-  });
+const OTP = otpGenerator.generate(6, {
+  upperCaseAlphabets: false,
+  lowerCaseAlphabets: false,
+  specialChars: false,
+});
+
+exports.handler = (event, context, callback) => {
   sgMail.setApiKey(API_KEY);
   let body = event;
-
   let { email } = body;
+
   const message = {
     to: email,
     from: {
       name: "noobMaster69",
       email: "djokernovak7@gmail.com",
     },
-    subject: "OTP Request",
+    subject: "Email Verification Request",
     text: `Your One Time Password (OTP) for Email verification is: ${OTP}`,
     html: `<p>Your One Time Password (OTP) for Email verification is: <span styles="text-style: bold"></span>${OTP}</span></p>`,
   };
+
+  function sendMail() {
+    return sgMail.send(message);
+  }
+
+  let responseBody = "";
+  let statusCode = 0;
 
   var updateParamsVerified = {
     TableName: "First-Table",
@@ -50,54 +58,88 @@ exports.handler = function (event, context, callback) {
     TableName: "First-Table",
   };
 
+  var Putparams = {
+    Item: {
+      Email: email,
+      OTP: OTP,
+      isVerified: 0,
+      tries: 3,
+    },
+    TableName: "First-Table",
+  };
+
   const data = docClient.get(Scanparams, (err, data) => {
     if (err) {
-      return;
+      console.log(err);
     } else {
-      try {
-        if (data.Item.Email) {
-          if (data.Item.isVerified) {
-            callback(null, "Verified Succesfully");
+      if (data.Item) {
+        if (data.Item.isVerified) {
+          responseBody = `Your Email has already been verified..!`;
+          statusCode = 400;
+          const response = {
+            statusCode: statusCode,
+            headers: {
+              my_header: "my_value",
+            },
+            body: JSON.stringify(responseBody),
+            isBase64Encoded: false,
+          };
+          callback(null, responseBody);
+        } else {
+          if (data.Item.tries > 0) {
+            const data = sendMail();
+            docClient.update(updateParamsVerified, (err, data) => {
+              if (err) {
+                console.log(err);
+              } else {
+                console.log("Details updated successfully");
+              }
+            });
+            responseBody = `An OTP has been mailed to you for verification..!`;
+            statusCode = 200;
+            const response = {
+              statusCode: statusCode,
+              headers: {
+                my_header: "my_value",
+              },
+              body: JSON.stringify(responseBody),
+              isBase64Encoded: false,
+            };
+            callback(null, response);
           } else {
-            if (data.Item.tries > 0) {
-              const data = sgMail.send(message);
-              docClient.update(updateParamsVerified, function (err, data) {
-                if (err) {
-                  console.error(
-                    "Unable to update item. Error JSON:",
-                    JSON.stringify(err, null, 2)
-                  );
-                } else {
-                  console.log(
-                    "UpdateItem succeeded:",
-                    JSON.stringify(data, null, 2)
-                  );
-                }
-              });
-              callback(null, "Mail sent");
-            } else {
-              callback("Number of tries exceeded..!");
-            }
+            responseBody = `Number of tries for verification has been exceeded..!`;
+            statusCode = 200;
+            const response = {
+              statusCode: statusCode,
+              headers: {
+                my_header: "my_value",
+              },
+              body: JSON.stringify(responseBody),
+              isBase64Encoded: false,
+            };
+            callback(null, response);
           }
         }
-      } catch (err) {
-        var Putparams = {
-          Item: {
-            Email: email,
-            OTP: OTP,
-            isVerified: 0,
-            tries: 3,
-          },
-          TableName: "First-Table",
-        };
-        const data = sgMail.send(message);
+      } else {
+        const data = sendMail();
         docClient.put(Putparams, (err, data) => {
           if (err) {
             console.log(err);
           } else {
-            callback(null, "Mail Sent");
+            console.log("Details appended successfully");
           }
         });
+        responseBody = `An OTP has been mailed to you for verification..!`;
+        statusCode = 201;
+        const response = {
+          statusCode: statusCode,
+          headers: {
+            my_header: "my_value",
+          },
+          body: JSON.stringify(responseBody),
+          isBase64Encoded: false,
+        };
+        callback(null, response);
       }
     }
   });
