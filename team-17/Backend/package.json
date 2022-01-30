@@ -1,0 +1,22 @@
+{
+  "name": "otp",
+  "version": "1.0.0",
+  "description": ">Disclaimer: I am not a complete expert in these topics lol, but what I can definitely do is help you become one. If I mention or suggest any topics or techniques which you feel are in-effecient, inept, or just outright stupid, freely and kindly point them out, I will do my best to correct them.",
+  "main": "Generate.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shanmai20/OTP.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/shanmai20/OTP/issues"
+  },
+  "homepage": "https://github.com/shanmai20/OTP#readme",
+  "dependencies": {
+    "@sendgrid/mail": "^7.6.0"
+  }
+}
