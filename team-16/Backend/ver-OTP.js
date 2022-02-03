@@ -2,25 +2,27 @@
 
 console.log("Loading function");
 const AWS = require("aws-sdk");
+import { tableName } from "./API_keys";
 
 const docClient = new AWS.DynamoDB.DocumentClient({ region: "us-east-2" });
 
-let Datenow = Date.now();
-
+//Fetching current time w.r.t epoch
 function getDate() {
   return Date.now();
 }
 
+//Declaring Response parameters
 let responseBody = "";
 let statusCode = 0;
 
+//Mail Lambda function
 exports.handler = function (event, context, callback) {
-  let body = event;
-  let email = body.email;
-  let OTP = body.OTP;
+  //Taking event (request) parameters
+  const { email, OTP } = event;
 
+  //Defining the paramters to be updated in DynamoDB if the OTP is correct
   var updateParamsVerified = {
-    TableName: "First-Table",
+    TableName: tableName,
     Key: {
       Email: email,
     },
@@ -32,8 +34,9 @@ exports.handler = function (event, context, callback) {
     ReturnValues: "UPDATED_NEW",
   };
 
+  //Defining the paramters to be updated in DynamoDB if the OTP is incorrect
   var updateParamsNotVerified = {
-    TableName: "First-Table",
+    TableName: tableName,
     Key: {
       Email: email,
     },
@@ -45,24 +48,26 @@ exports.handler = function (event, context, callback) {
     ReturnValues: "UPDATED_NEW",
   };
 
-  var Scanparams = {
+  //Fetch attributes of respective input mail
+  var getParams = {
     Key: {
       Email: email,
     },
-    TableName: "First-Table",
+    TableName: tableName,
   };
 
-  console.log(getDate());
-
-  const data = docClient.get(Scanparams, (err, data) => {
+  const data = docClient.get(getParams, (err, data) => {
     if (err) {
       callback(err);
     } else {
+      //If the OTP is correct and not expired
       if (data.Item.OTP == OTP && data.Item.expiryTime > getDate()) {
         docClient.update(updateParamsVerified, (err, data) => {
           if (err) {
+            //Defining response parameters
             responseBody = `Error: ${err}`;
             statusCode = 402;
+            //Response to the user
             const response = {
               statusCode: statusCode,
               headers: {
@@ -74,8 +79,10 @@ exports.handler = function (event, context, callback) {
             callback(response, null);
           } else {
             console.log("Details Updated succesfully..!");
+            //Defining response parameters
             responseBody = `You have been verified succesfully..!`;
             statusCode = 200;
+            //Response to the user
             const response = {
               statusCode: statusCode,
               headers: {
@@ -87,11 +94,15 @@ exports.handler = function (event, context, callback) {
             callback(null, response);
           }
         });
-      } else if (getDate() > data.Item.expiryTime) {
+      }
+      //If the OTP is expired
+      else if (getDate() > data.Item.expiryTime) {
         docClient.update(updateParamsNotVerified, (err, data) => {
           if (err) {
+            //Defining response parameters
             responseBody = `Error: ${err}`;
             statusCode = 402;
+            //Response to the user
             const response = {
               statusCode: statusCode,
               headers: {
@@ -103,8 +114,10 @@ exports.handler = function (event, context, callback) {
             callback(response, null);
           } else {
             console.log("Details Updated succesfully..!");
+            //Defining response parameters
             responseBody = `OTP Expired..!`;
             statusCode = 400;
+            //Response to the user
             const response = {
               statusCode: statusCode,
               headers: {
@@ -116,11 +129,15 @@ exports.handler = function (event, context, callback) {
             callback(null, response);
           }
         });
-      } else {
+      }
+      //If the OTP is wrong
+      else {
         docClient.update(updateParamsNotVerified, (err, data) => {
           if (err) {
+            //Defining response parameters
             responseBody = `Error: ${err}`;
             statusCode = 402;
+            //Response to the user
             const response = {
               statusCode: statusCode,
               headers: {
@@ -132,7 +149,9 @@ exports.handler = function (event, context, callback) {
             callback(response, null);
           } else {
             console.log("Details Updated succesfully..!");
+            //Defining response parameters
             responseBody = `Wrong OTP..!`;
+            //Response to the user
             statusCode = 400;
             const response = {
               statusCode: statusCode,
@@ -149,288 +168,3 @@ exports.handler = function (event, context, callback) {
     }
   });
 };
-
-/* Jan - 30
-
-"use strict";
-
-console.log("Loading function");
-const AWS = require("aws-sdk");
-
-const docClient = new AWS.DynamoDB.DocumentClient({ region: "us-east-2" });
-
-let Datenow = Date.now();
-
-function getDate() {
-  return Date.now();
-}
-
-let responseBody = "";
-let statusCode = 0;
-
-exports.handler = function (event, context, callback) {
-  let body = event;
-  let email = body.Email;
-  let OTP = body.OTP;
-
-  var updateParamsVerified = {
-    TableName: "First-Table",
-    Key: {
-      Email: email,
-    },
-    UpdateExpression: "set isVerified = :r",
-
-    ExpressionAttributeValues: {
-      ":r": 1,
-    },
-    ReturnValues: "UPDATED_NEW",
-  };
-
-  var updateParamsNotVerified = {
-    TableName: "First-Table",
-    Key: {
-      Email: email,
-    },
-    UpdateExpression: "set isVerified = :r",
-
-    ExpressionAttributeValues: {
-      ":r": 0,
-    },
-    ReturnValues: "UPDATED_NEW",
-  };
-
-  var Scanparams = {
-    Key: {
-      Email: email,
-    },
-    TableName: "First-Table",
-  };
-
-  const data = docClient.get(Scanparams, (err, data) => {
-    if (err) {
-      callback(err);
-    } else {
-      if (data.Item.OTP == OTP && data.Item.expiryTime > getDate()) {
-        docClient.update(updateParamsVerified, (err, data) => {
-          if (err) {
-            responseBody = `Error: ${err}`;
-            statusCode = 402;
-            const response = {
-              statusCode: statusCode,
-              headers: {
-                my_header: "my_value",
-              },
-              body: JSON.stringify(responseBody),
-              isBase64Encoded: false,
-            };
-            callback(response, null);
-          } else {
-            console.log("Details Updated succesfully..!");
-            responseBody = `You have been verified succesfully..!`;
-            statusCode = 200;
-            const response = {
-              statusCode: statusCode,
-              headers: {
-                my_header: "my_value",
-              },
-              body: JSON.stringify(responseBody),
-              isBase64Encoded: false,
-            };
-            callback(null, response);
-          }
-        });
-      } else if (getDate() > data.Item.expiryTime) {
-        docClient.update(updateParamsNotVerified, (err, data) => {
-          if (err) {
-            responseBody = `Error: ${err}`;
-            statusCode = 402;
-            const response = {
-              statusCode: statusCode,
-              headers: {
-                my_header: "my_value",
-              },
-              body: JSON.stringify(responseBody),
-              isBase64Encoded: false,
-            };
-            callback(response, null);
-          } else {
-            console.log("Details Updated succesfully..!");
-            responseBody = `OTP Expired..!`;
-            statusCode = 400;
-            const response = {
-              statusCode: statusCode,
-              headers: {
-                my_header: "my_value",
-              },
-              body: JSON.stringify(responseBody),
-              isBase64Encoded: false,
-            };
-            callback(null, response);
-          }
-        });
-      } else {
-        docClient.update(updateParamsNotVerified, (err, data) => {
-          if (err) {
-            responseBody = `Error: ${err}`;
-            statusCode = 402;
-            const response = {
-              statusCode: statusCode,
-              headers: {
-                my_header: "my_value",
-              },
-              body: JSON.stringify(responseBody),
-              isBase64Encoded: false,
-            };
-            callback(response, null);
-          } else {
-            console.log("Details Updated succesfully..!");
-            responseBody = `Wrong OTP..!`;
-            statusCode = 400;
-            const response = {
-              statusCode: statusCode,
-              headers: {
-                my_header: "my_value",
-              },
-              body: JSON.stringify(responseBody),
-              isBase64Encoded: false,
-            };
-            callback(null, response);
-          }
-        });
-      }
-    }
-  });
-};
- */
-/* const data = docClient.get(Scanparams, (err, data) => {
-    if (err) {
-      callback(err);
-    } else {
-      if (data.Item.OTP == OTP && data.Item.expiryTime < getDate()) {
-        docClient.update(updateParamsVerified, function (err, data) {
-          if (err) {
-            console.error(
-              "Unable to update item. Error JSON:",
-              JSON.stringify(err, null, 2)
-            );
-          } else {
-            console.log("UpdateItem succeeded:", JSON.stringify(data, null, 2));
-          }
-        });
-        callback(null, "Verified Succesfully");
-      } else {
-        docClient.update(updateParamsNotVerified, function (err, data) {
-          if (err) {
-            console.error(
-              "Unable to update item. Error JSON:",
-              JSON.stringify(err, null, 2)
-            );
-          } else {
-            console.log("UpdateItem succeeded:", JSON.stringify(data, null, 2));
-          }
-        });
-
-        callback(null, "Wrong OTP");
-      }
-    }
-  }); */
-
-/*  'use strict';
-
-console.log('Loading function');
-const AWS = require('aws-sdk');
-
-
-const docClient=new AWS.DynamoDB.DocumentClient({region: 'us-east-2'});
-
-
-exports.handler = function(event,context,callback){
-    
-    let body = event;
-    let email=body.Email;
-    let OTP=body.OTP;
-    
-    var updateParamsVerified={
-               
-               TableName: "First-Table",
-               Key: {
-                   "Email": email},
-               UpdateExpression: "set isVerified = :r, tries=tries -:p",
-           
-           ExpressionAttributeValues: {
-               ":r": 1,
-               ":p": 1
-               
-           },
-        ReturnValues:"UPDATED_NEW"
-    }
-    
-    var updateParamsNotVerified={
-               
-               TableName: "First-Table",
-               Key: {
-                   "Email": email},
-               UpdateExpression: "set isVerified = :r, tries=tries -:p",
-           
-           ExpressionAttributeValues: {
-               ":r": 0,
-               ":p": 1
-               
-           },
-        ReturnValues:"UPDATED_NEW"
-    }
-           
-         /*  var PutparamsNotVerified={
-               
-               Item:{
-                   
-                   "Email": email,
-                   "isVerified": 0,
-                   "tries": 3
-               },
-               TableName: "First-Table"
-           }
-    
-           
-          
-    var Scanparams={
-               
-               Key:{
-                    "Email": email 
-                },
-               TableName: "First-Table"
-           }
-           
-            const data= docClient.get(Scanparams,(err,data)=>{
-              if (err) {
-                 callback(err)
-              }
-              else{
-                  if(data.Item.OTP==OTP){
-                      docClient.update(updateParamsVerified, function(err, data) {
-                                if (err) {
-                                    console.error("Unable to update item. Error JSON:", JSON.stringify(err, null, 2));
-                                } else {
-                                    console.log("UpdateItem succeeded:", JSON.stringify(data, null, 2));
-                                }
-                            });
-                  callback(null,"Verified Succesfully")
-                      
-                  }
-                  else{
-                      docClient.update(updateParamsNotVerified, function(err, data) {
-                                if (err) {
-                                    console.error("Unable to update item. Error JSON:", JSON.stringify(err, null, 2));
-                                } else {
-                                    console.log("UpdateItem succeeded:", JSON.stringify(data, null, 2));
-                                }
-                            });
-                      
-                      callback(null,"Wrong OTP")
-                  }
-                  
-              }
-              
-          
-          })
-} */
