@@ -14,9 +14,9 @@ import { AccountCircle } from "@mui/icons-material";
 import { useNavigate } from "react-router";
 import { emailContext } from "../context/emailContext";
 import { useContext } from "react";
-import {useState } from "react";
+import { useState } from "react";
 import validateSignUp from "../components/validateSignUp";
-import axios from 'axios';
+import axios from "axios";
 
 function Copyright(props) {
   return (
@@ -39,11 +39,10 @@ function Copyright(props) {
 const theme = createTheme();
 
 export default function SignUp() {
-  const {email,setEmail} = useContext(emailContext);
-
+  const { email, setEmail } = useContext(emailContext);
 
   const [errors, setErrors] = useState(false);
-  
+
   let navigate = useNavigate();
 
   const handleSubmit = (e) => {
@@ -52,20 +51,23 @@ export default function SignUp() {
     console.log(email);
 
     const params = {
-      email: email
-    }
+      email: email,
+    };
 
-    axios.post('https://uvp4u5er3k.execute-api.us-east-2.amazonaws.com/prod/generate',params)
+    axios
+      .post(
+        "https://bl4x984vf5.execute-api.us-east-2.amazonaws.com/prod/generate",
+        params
+      )
       .then((data) => {
-        console.log(data)
+        console.log(data);
         if (data.data.statusCode === 200) {
-          navigate('/verify')
-        } 
-     })
-     .catch((err) => {
-       console.log(err)
+          navigate("/verify");
+        }
       })
-
+      .catch((err) => {
+        console.log(err);
+      });
   };
 
   return (
@@ -114,7 +116,7 @@ export default function SignUp() {
                 autoComplete="email"
                 placeholder="Enter your email address"
                 style={{ height: 75, width: 350, marginBottom: "5%" }}
-                onChange= {(e)=>{
+                onChange={(e) => {
                   setEmail(e.target.value);
                 }}
                 InputProps={{
@@ -134,7 +136,7 @@ export default function SignUp() {
                   marginBottom: "4%",
                 }}
               >
-                {errors.email && <p>{errors.email}</p>}
+                {errors.email && <p>{errors.email}</p> }
               </div>
               <Button
                 type="submit"
