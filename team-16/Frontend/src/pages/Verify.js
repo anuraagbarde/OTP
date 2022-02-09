@@ -17,7 +17,6 @@ import validateVerify from "../components/validateVerify";
 import axios from "axios";
 import { emailContext } from "../context/emailContext";
 
-
 function Copyright(props) {
   return (
     <Typography
