@@ -57,10 +57,7 @@ export default function SignUp() {
     };
 
     axios
-      .post(
-        "https://bl4x984vf5.execute-api.us-east-2.amazonaws.com/prod/generate",
-        params
-      )
+      .post(process.env.REACT_APP_GENERATE_OTP_API_URL, params)
       .then((data) => {
         console.log(data);
         if (data.data.statusCode === 200) {
@@ -158,7 +155,7 @@ export default function SignUp() {
                 Sign Up
               </Button>
 
-              <DialogBox open={open} message={message} setOpen={setOpen}/>
+              <DialogBox open={open} message={message} setOpen={setOpen} />
             </Box>
           </Box>
           <Copyright

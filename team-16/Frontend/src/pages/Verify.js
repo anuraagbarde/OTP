@@ -66,16 +66,12 @@ export default function Verify() {
     console.log(params);
 
     axios
-      .post(
-        "https://uvp4u5er3k.execute-api.us-east-2.amazonaws.com/prod/verify",
-        params
-      )
+      .post(process.env.REACT_APP_VERIFY_OTP_API_URL, params)
       .then((data) => {
         console.log(data);
         if (data.data.statusCode === 200) {
           navigate("/home");
-        }
-        else {
+        } else {
           setMessage(data.data.body);
           setOpen(true);
         }
@@ -159,7 +155,7 @@ export default function Verify() {
             >
               Submit
             </Button>
-            <DialogBox open={open} message={message} setOpen={setOpen}/>
+            <DialogBox open={open} message={message} setOpen={setOpen} />
           </Box>
         </Box>
         <Copyright
