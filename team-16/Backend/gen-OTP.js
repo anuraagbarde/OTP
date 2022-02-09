@@ -1,16 +1,27 @@
-"use strict";
+("use strict");
 
 console.log("Loading function");
 const AWS = require("aws-sdk");
-import { API_KEY } from "./API_keys";
-import { tableName } from "./API_keys";
-const sgMail = require("@sendgrid/mail");
+const express = require("express");
 const otpGenerator = require("otp-generator");
+const nodemailer = require("nodemailer");
+const { google } = require("googleapis");
+const { OAuth2Client, DefaultTransporter } = require("google-auth-library");
+const hbs = require("nodemailer-express-handlebars");
+const emailValidator = require("email-validator");
 
 const docClient = new AWS.DynamoDB.DocumentClient({ region: "us-east-2" });
+const tableName = "";
+
+const CLIENT_ID = "";
+const CLIENT_SECRET = "";
+const REDIRECT_URI = "";
+const REFRESH_TOKEN = "";
+
+const oAuth2Client = new OAuth2Client(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
+oAuth2Client.setCredentials({ refresh_token: REFRESH_TOKEN });
 
 //Function to fetch the present date w.r.t EPOCH
-let Datenow = Date.now();
 function getDate() {
   return Date.now();
 }
@@ -25,14 +36,6 @@ const OTP = otpGenerator.generate(6, {
   specialChars: false,
 });
 
-//Adding the API key of sendgrid
-sgMail.setApiKey(API_KEY);
-
-//function to send the mail using sendgrid
-function sendMail() {
-  return sgMail.send(message);
-}
-
 //Defining the response parameters
 let responseBody = "";
 let statusCode = 0;
@@ -42,17 +45,78 @@ exports.handler = (event, context, callback) => {
   let body = event;
   let { email } = body;
 
-  //Defining the verification Email parameters
-  const message = {
-    to: email,
-    from: {
-      name: "noobMaster69",
-      email: "djokernovak7@gmail.com",
-    },
-    subject: "Email Verification Request",
-    text: `Your One Time Password (OTP) for Email verification is: ${OTP}`,
-    html: `<p>Your One Time Password (OTP) for Email verification is: <span styles="text-style: bold"></span>${OTP}</span></p>`,
-  };
+  if (!emailValidator.validate(email)) {
+    responseBody = `Invalid email..!`;
+    //Defining response parameters
+    statusCode = 400;
+    //Response to be sent to the user
+    const response = {
+      statusCode: statusCode,
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST",
+      },
+      body: JSON.stringify(responseBody),
+      isBase64Encoded: false,
+    };
+    callback(null, response); //Sending the response to the user
+  }
+
+  async function sendMail() {
+    try {
+      const accessToken = await oAuth2Client.getAccessToken();
+
+      const transport = nodemailer.createTransport({
+        service: "gmail",
+        port: 465,
+        secure: true, // true for 465, false for other ports
+        logger: true,
+        debug: true,
+        secureConnection: false,
+        auth: {
+          type: "OAuth2",
+          user: "djokernovak7@gmail.com",
+          clientId: CLIENT_ID,
+          clientSecret: CLIENT_SECRET,
+          refreshToken: REFRESH_TOKEN,
+          accessToken: accessToken,
+        },
+        tls: {
+          rejectUnAuthorized: true,
+        },
+      });
+
+      const handlebarOptions = {
+        viewEngine: {
+          extName: ".handlebars",
+          partialsDir: "./views",
+          defaultLayout: false,
+        },
+        viewPath: "./views",
+        extName: ".handlebars",
+      };
+
+      console.log(transport.options.host);
+      transport.use("compile", hbs(handlebarOptions));
+
+      const mailOptions = {
+        from: "noobMaster69 <djokernovak7@gmail.com>",
+        to: email,
+        subject: "Email Verification Request",
+        text: "Hey there..!",
+        template: "index",
+        context: {
+          OTP: OTP,
+        },
+      };
+
+      const result = await transport.sendMail(mailOptions);
+      return result;
+    } catch (error) {
+      return error;
+    }
+  }
 
   // DynamoDB: parameters to be updated if the verification mail is sent.
   const updateParams = {
@@ -82,7 +146,7 @@ exports.handler = (event, context, callback) => {
       Email: email,
       OTP: OTP,
       isVerified: 0,
-      tries: 3,
+      tries: 0,
       expiryTime: expiryTime,
     },
     TableName: tableName,
@@ -105,7 +169,9 @@ exports.handler = (event, context, callback) => {
           const response = {
             statusCode: statusCode,
             headers: {
-              my_header: "my_value",
+              "Content-Type": "application/json",
+              "Access-Control-Allow-Origin": "*",
+              "Access-Control-Allow-Methods": "POST",
             },
             body: JSON.stringify(responseBody),
             isBase64Encoded: false,
@@ -114,8 +180,10 @@ exports.handler = (event, context, callback) => {
         }
         //If Email exists and the number of attempts of the user are within the limit
         else {
-          if (data.Item.tries < 3) {
-            const data = sendMail();
+          if (data.Item.tries < 5) {
+            sendMail()
+              .then((result) => console.log("Email Sent..!", result))
+              .catch((error) => console.log("Error: ", error.message));
             docClient.update(updateParams, (err, data) => {
               if (err) {
                 console.log(err);
@@ -130,7 +198,9 @@ exports.handler = (event, context, callback) => {
             const response = {
               statusCode: statusCode,
               headers: {
-                my_header: "my_value",
+                "Content-Type": "application/json",
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "POST",
               },
               body: JSON.stringify(responseBody),
               isBase64Encoded: false,
@@ -141,12 +211,14 @@ exports.handler = (event, context, callback) => {
           else {
             //Defining response parameters
             responseBody = `Number of tries for verification has been exceeded..!`;
-            statusCode = 200;
+            statusCode = 201;
             //Response to be sent to the user
             const response = {
               statusCode: statusCode,
               headers: {
-                my_header: "my_value",
+                "Content-Type": "application/json",
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "POST",
               },
               body: JSON.stringify(responseBody),
               isBase64Encoded: false,
@@ -157,7 +229,9 @@ exports.handler = (event, context, callback) => {
       }
       //If the user is new (The record the user is not present in DynamoDB)
       else {
-        const data = sendMail();
+        sendMail()
+          .then((result) => console.log("Email Sent..!", result))
+          .catch((error) => console.log("Error: ", error.message));
         docClient.put(Putparams, (err, data) => {
           if (err) {
             console.log(err);
@@ -167,12 +241,14 @@ exports.handler = (event, context, callback) => {
         });
         //Defining response parameters
         responseBody = `An OTP has been mailed to you for verification..!`;
-        statusCode = 201;
+        statusCode = 200;
         //Response to be sent to the user
         const response = {
           statusCode: statusCode,
           headers: {
-            my_header: "my_value",
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "POST",
           },
           body: JSON.stringify(responseBody),
           isBase64Encoded: false,

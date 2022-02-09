@@ -2,7 +2,7 @@
 
 console.log("Loading function");
 const AWS = require("aws-sdk");
-import { tableName } from "./API_keys";
+//import { tableName } from "./API_keys";
 
 const docClient = new AWS.DynamoDB.DocumentClient({ region: "us-east-2" });
 
