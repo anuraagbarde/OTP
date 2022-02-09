@@ -15,8 +15,8 @@ import { useNavigate } from "react-router";
 import { useContext, useState } from "react";
 import validateVerify from "../components/validateVerify";
 import axios from "axios";
+import DialogBox from "../components/DialogBox";
 import { emailContext } from "../context/emailContext";
-
 
 function Copyright(props) {
   return (
@@ -45,6 +45,8 @@ export default function Verify() {
   const { email } = useContext(emailContext);
 
   const [errors, setErrors] = useState({});
+  const [message, setMessage] = useState();
+  const [open, setOpen] = useState(false);
 
   const handleChange = (e) => {
     setOtp(e.target.value);
@@ -72,6 +74,10 @@ export default function Verify() {
         console.log(data);
         if (data.data.statusCode === 200) {
           navigate("/home");
+        }
+        else {
+          setMessage(data.data.body);
+          setOpen(true);
         }
       });
   };
@@ -153,6 +159,7 @@ export default function Verify() {
             >
               Submit
             </Button>
+            <DialogBox open={open} message={message} setOpen={setOpen}/>
           </Box>
         </Box>
         <Copyright
