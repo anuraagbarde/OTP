@@ -17,6 +17,7 @@ import { useContext } from "react";
 import { useState } from "react";
 import validateSignUp from "../components/validateSignUp";
 import axios from "axios";
+import DialogBox from "../components/DialogBox";
 
 function Copyright(props) {
   return (
@@ -40,8 +41,9 @@ const theme = createTheme();
 
 export default function SignUp() {
   const { email, setEmail } = useContext(emailContext);
-
   const [errors, setErrors] = useState(false);
+  const [message, setMessage] = useState();
+  const [open, setOpen] = useState(false);
 
   let navigate = useNavigate();
 
@@ -63,6 +65,9 @@ export default function SignUp() {
         console.log(data);
         if (data.data.statusCode === 200) {
           navigate("/verify");
+        } else {
+          setMessage(data.data.body);
+          setOpen(true);
         }
       })
       .catch((err) => {
@@ -136,7 +141,7 @@ export default function SignUp() {
                   marginBottom: "4%",
                 }}
               >
-                {errors.email && <p>{errors.email}</p> }
+                {errors.email && <p>{errors.email}</p>}
               </div>
               <Button
                 type="submit"
@@ -152,6 +157,8 @@ export default function SignUp() {
               >
                 Sign Up
               </Button>
+
+              <DialogBox open={open} message={message} setOpen={setOpen}/>
             </Box>
           </Box>
           <Copyright
